@@ -36,6 +36,7 @@ public class Program
             }
         }
 
+        await Database.InitAsync();
         Server server = new Server(port);
         await server.StartListening();
     }
