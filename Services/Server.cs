@@ -5,13 +5,12 @@ using System.Linq;
 using System;
 using System.Threading.Tasks;
 
-// Главный TCP-сервер: принимает подключения, следит за активностью клиентов и онлайном
+// TCP-сервер
 public class Server
 {
     private int port;
     private TcpListener? listener;
 
-    // Список активных подключений (защищен _lock от потоковых гонок)
     private readonly List<Connection> connections = new();
     private readonly object _lock = new();
 
@@ -21,24 +20,51 @@ public class Server
         Connection.IsOnlineCallback = isOnline;
     }
 
-    // Запуск прослушивания порта и цикла принятия клиентов
+    // Запуск сервера
     public async Task<bool> StartListening()
     {
         IPAddress localIp = IPAddress.Parse("127.0.0.1");
-        listener = new TcpListener(new IPEndPoint(localIp, port));
-        try
+        int requestedPort = port;
+        const int maxPortAttempts = 100;
+        bool isBound = false;
+
+        // Поиск свободного порта при конфликте
+        for (int attempt = 0; attempt < maxPortAttempts; attempt++)
         {
-            listener.Start();
+            try
+            {
+                listener = new TcpListener(new IPEndPoint(localIp, port));
+                listener.Start();
+                isBound = true;
+                break;
+            }
+            catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AddressAlreadyInUse)
+            {
+                Console.WriteLine($"[!] Порт {port} уже занят. Пробуем следующий...");
+                port++;
+                if (port > 65535) port = 1024;
+            }
+            catch (SocketException ex)
+            {
+                Console.WriteLine($"Ошибка запуска листенера на порту {port}: {ex.Message}");
+                return false;
+            }
         }
-        catch (SocketException ex)
+
+        if (!isBound || listener == null)
         {
-            Console.WriteLine($"Ошибка запуска листенера: {ex.Message}");
+            Console.WriteLine($"[!] Не удалось найти свободный порт в диапазоне {requestedPort}-{port}.");
             return false;
+        }
+
+        if (port != requestedPort)
+        {
+            Console.WriteLine($"[i] Запрошенный порт {requestedPort} был занят. Выбран свободный порт: {port}");
         }
 
         Console.WriteLine($"Сервер запущен и слушает порт {port}...");
 
-        // Фоновый таймер (раз в 3 сек) для очистки неактивных клиентов
+        // Очистка неактивных клиентов каждые 3 секунды
         _ = Task.Run(async () =>
         {
             while (true)
@@ -48,13 +74,12 @@ public class Server
             }
         });
 
-        // Бесконечный цикл принятия клиентов
+        // Прием входящих подключений
         while (true)
         {
             TcpClient client = await listener.AcceptTcpClientAsync();
             Connection connection = new Connection(client);
 
-            // Автоматическое удаление и закрытие сокета при дисконнекте
             connection.OnDisconnected = RemoveConnection;
 
             lock (_lock)
@@ -62,13 +87,11 @@ public class Server
                 connections.Add(connection);
             }
 
-            // Запуск асинхронной обработки клиента
             _ = connection.StartHandling();
             Console.WriteLine($"[+] Новое подключение от {client.Client.RemoteEndPoint}");
         }
     }
 
-    // Немедленное удаление клиента из списка при отключении
     private void RemoveConnection(Connection connection)
     {
         lock (_lock)
@@ -78,7 +101,6 @@ public class Server
         connection.Close();
     }
 
-    // Проверка онлайн-статуса пользователя
     private bool isOnline(string login)
     {
         lock (_lock)
@@ -87,7 +109,7 @@ public class Server
         }
     }
 
-    // Удаление и закрытие зависших/неактивных соединений
+    // Проверка неактивных клиентов
     private void CheckForDeadConnections()
     {
         List<Connection> deadConnections;
@@ -106,7 +128,6 @@ public class Server
             }
         }
 
-        // Закрытие сокетов вне lock
         foreach (Connection connection in deadConnections)
         {
             try

@@ -6,30 +6,20 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
-// Обработчик клиентского подключения на стороне сервера
+// Клиентское подключение на сервере
 public class Connection
 {
-    // Лимит размера входящего пакета (5 МБ) для защиты от OOM
-    private const int MaxPacketSize = 5 * 1024 * 1024;
+    private const int MaxPacketSize = 5 * 1024 * 1024; // 5 МБ
 
     private static readonly RegAuth regAuth = new RegAuth();
     private static readonly MessageStorage messageStorage = new MessageStorage();
 
-    // Делегат проверки онлайн-статуса
     public static Func<string, bool> IsOnlineCallback = _ => false;
 
-    // Сокет клиента
     public TcpClient Client { get; init; }
-
-    // Логин после успешной авторизации
     public string? Login { get; set; }
-
     private NetworkStream stream;
-
-    // Время последнего запроса (для обнаружения мертвых клиентов)
     public DateTime LastRequestTime;
-
-    // Уведомление об отключении клиента
     public Action<Connection>? OnDisconnected { get; set; }
 
     public Connection(TcpClient client)
@@ -39,38 +29,37 @@ public class Connection
         LastRequestTime = DateTime.Now;
     }
 
-    // Основной цикл чтения и обработки запросов от клиента
+    // Чтение и обработка запросов
     public async Task StartHandling()
     {
         try
         {
             while (stream != null && Client.Connected)
             {
-                // Чтение типа запроса (1 байт)
+                // Читаем тип запроса
                 byte[] byteType = new byte[1];
                 await stream.ReadExactlyAsync(byteType);
                 int type = byteType[0];
 
-                // Чтение длины пакета (4 байта)
+                // Читаем длину пакета
                 byte[] byteLength = new byte[4];
                 await stream.ReadExactlyAsync(byteLength);
                 int length = BitConverter.ToInt32(byteLength, 0);
 
-                // Валидация длины пакета
                 if (length <= 0 || length > MaxPacketSize)
                 {
                     Console.WriteLine($"[connection] Недопустимая длина пакета ({length} байт). Отключение {Client.Client.RemoteEndPoint}.");
                     break;
                 }
 
-                // Чтение тела запроса
+                // Читаем тело запроса
                 byte[] byteJson = new byte[length];
                 await stream.ReadExactlyAsync(byteJson);
                 string json = Encoding.UTF8.GetString(byteJson);
 
                 Response response = new Response();
 
-                // Неавторизованным клиентам доступны только регистрация (0) и логин (1)
+                // Разрешаем только регистрацию и вход до авторизации
                 if (string.IsNullOrWhiteSpace(Login) && type != 0 && type != 1)
                 {
                     sendRefusal(response);
@@ -112,11 +101,11 @@ public class Connection
         }
         catch (EndOfStreamException)
         {
-            // Клиент закрыл соединение
+            // Отключение клиента
         }
         catch (IOException)
         {
-            // Разрыв сокета / обрыв сети
+            // Разрыв сокета
         }
         catch (SocketException)
         {
@@ -124,17 +113,15 @@ public class Connection
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[connection] Непредвиденная ошибка: {ex.Message}");
+            Console.WriteLine($"[connection] Ошибка: {ex.Message}");
         }
         finally
         {
-            // Гарантированное освобождение сокета и удаление из списка активных
             Close();
             OnDisconnected?.Invoke(this);
         }
     }
 
-    // Закрытие потока и сокета
     public void Close()
     {
         try
@@ -147,7 +134,7 @@ public class Connection
         catch { }
     }
 
-    // Отправка ответа клиенту: [тип 5] + [длина 4 байта] + [JSON]
+    // Отправка ответа клиенту
     private async Task sendResponse(Response response)
     {
         string jsonResponse = JsonSerializer.Serialize(response);
