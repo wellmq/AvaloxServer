@@ -1,4 +1,4 @@
-// Стандартный ответ сервера клиенту
+// Standard server response payload
 public class Response
 {
     public bool IsSuccessful { get; set; }

@@ -5,10 +5,10 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-// Клиентское подключение на сервере
+// Server-side client connection handler
 public class Connection
 {
-    private const int MaxPacketSize = 5 * 1024 * 1024; // 5 МБ
+    private const int MaxPacketSize = 5 * 1024 * 1024; // 5 MB
 
     private static readonly RegAuth regAuth = new RegAuth();
     private static readonly MessageStorage messageStorage = new MessageStorage();
@@ -28,37 +28,37 @@ public class Connection
         LastRequestTime = DateTime.Now;
     }
 
-    // Чтение и обработка запросов
+    // Read and process incoming client requests
     public async Task StartHandling()
     {
         try
         {
             while (stream != null && Client.Connected)
             {
-                // Читаем тип запроса
+                // Read request packet type
                 byte[] byteType = new byte[1];
                 await stream.ReadExactlyAsync(byteType);
                 int type = byteType[0];
 
-                // Читаем длину пакета
+                // Read packet length
                 byte[] byteLength = new byte[4];
                 await stream.ReadExactlyAsync(byteLength);
                 int length = BitConverter.ToInt32(byteLength, 0);
 
                 if (length <= 0 || length > MaxPacketSize)
                 {
-                    Console.WriteLine($"[connection] Недопустимая длина пакета ({length} байт). Отключение {Client.Client.RemoteEndPoint}.");
+                    Console.WriteLine($"[connection] Invalid packet length ({length} bytes). Disconnecting {Client.Client.RemoteEndPoint}.");
                     break;
                 }
 
-                // Читаем тело запроса
+                // Read request JSON body
                 byte[] byteJson = new byte[length];
                 await stream.ReadExactlyAsync(byteJson);
                 string json = Encoding.UTF8.GetString(byteJson);
 
                 Response response = new Response();
 
-                // Разрешаем только регистрацию и вход до авторизации
+                // Allow only registration and login prior to authentication
                 if (string.IsNullOrWhiteSpace(Login) && type != 0 && type != 1)
                 {
                     sendRefusal(response);
@@ -100,19 +100,19 @@ public class Connection
         }
         catch (EndOfStreamException)
         {
-            // Отключение клиента
+            // Client disconnected normally
         }
         catch (IOException)
         {
-            // Разрыв сокета
+            // Socket aborted or broken
         }
         catch (SocketException)
         {
-            // Ошибка сокета
+            // Socket error
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[connection] Ошибка: {ex.Message}");
+            Console.WriteLine($"[connection] Error: {ex.Message}");
         }
         finally
         {
@@ -133,7 +133,7 @@ public class Connection
         catch { }
     }
 
-    // Отправка ответа клиенту
+    // Send response packet to client
     private async Task sendResponse(Response response)
     {
         string jsonResponse = JsonSerializer.Serialize(response);

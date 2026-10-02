@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 
-// Точка входа сервера: принимает порт из аргументов командной строки или использует 7777 по умолчанию
+// Server entry point: parses port from command line arguments or falls back to default port 7777
 public class Program
 {
     static async Task Main(string[] args)
@@ -9,7 +9,7 @@ public class Program
         int defaultPort = 7777;
         int port = defaultPort;
 
-        // Парсинг аргументов запуска: поддерживаются форматы "7777", "--port 7777", "-p 7777"
+        // Parse startup arguments: supports "7777", "--port 7777", "-p 7777"
         if (args.Length > 0)
         {
             for (int i = 0; i < args.Length; i++)
@@ -31,7 +31,7 @@ public class Program
 
             if (port <= 0 || port > 65535)
             {
-                Console.WriteLine($"[!] Некорректный номер порта в аргументах. Используется порт по умолчанию: {defaultPort}");
+                Console.WriteLine($"[!] Invalid port number in arguments. Using default port: {defaultPort}");
                 port = defaultPort;
             }
         }

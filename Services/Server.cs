@@ -5,7 +5,7 @@ using System.Linq;
 using System;
 using System.Threading.Tasks;
 
-// TCP-сервер
+// Asynchronous TCP Server
 public class Server
 {
     private int port;
@@ -20,7 +20,7 @@ public class Server
         Connection.IsOnlineCallback = isOnline;
     }
 
-    // Запуск сервера
+    // Start listening for incoming TCP connections
     public async Task<bool> StartListening()
     {
         IPAddress localIp = IPAddress.Parse("127.0.0.1");
@@ -28,7 +28,7 @@ public class Server
         const int maxPortAttempts = 100;
         bool isBound = false;
 
-        // Поиск свободного порта при конфликте
+        // Find next available port on conflict
         for (int attempt = 0; attempt < maxPortAttempts; attempt++)
         {
             try
@@ -40,31 +40,31 @@ public class Server
             }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AddressAlreadyInUse)
             {
-                Console.WriteLine($"[!] Порт {port} уже занят. Пробуем следующий...");
+                Console.WriteLine($"[!] Port {port} is already in use. Trying next...");
                 port++;
                 if (port > 65535) port = 1024;
             }
             catch (SocketException ex)
             {
-                Console.WriteLine($"Ошибка запуска листенера на порту {port}: {ex.Message}");
+                Console.WriteLine($"Error starting listener on port {port}: {ex.Message}");
                 return false;
             }
         }
 
         if (!isBound || listener == null)
         {
-            Console.WriteLine($"[!] Не удалось найти свободный порт в диапазоне {requestedPort}-{port}.");
+            Console.WriteLine($"[!] Could not find an available port in range {requestedPort}-{port}.");
             return false;
         }
 
         if (port != requestedPort)
         {
-            Console.WriteLine($"[i] Запрошенный порт {requestedPort} был занят. Выбран свободный порт: {port}");
+            Console.WriteLine($"[i] Requested port {requestedPort} was busy. Bound to port: {port}");
         }
 
-        Console.WriteLine($"Сервер запущен и слушает порт {port}...");
+        Console.WriteLine($"Server started and listening on port {port}...");
 
-        // Очистка неактивных клиентов каждые 3 секунды
+        // Clean up inactive connections every 3 seconds
         _ = Task.Run(async () =>
         {
             while (true)
@@ -74,7 +74,7 @@ public class Server
             }
         });
 
-        // Прием входящих подключений
+        // Accept incoming client connections
         while (true)
         {
             TcpClient client = await listener.AcceptTcpClientAsync();
@@ -88,7 +88,7 @@ public class Server
             }
 
             _ = connection.StartHandling();
-            Console.WriteLine($"[+] Новое подключение от {client.Client.RemoteEndPoint}");
+            Console.WriteLine($"[+] New connection from {client.Client.RemoteEndPoint}");
         }
     }
 
@@ -99,7 +99,7 @@ public class Server
             connections.Remove(connection);
         }
 
-        string info = connection.Login ?? "гость";
+        string info = connection.Login ?? "guest";
         try
         {
             if (connection.Client.Client.RemoteEndPoint != null)
@@ -109,7 +109,7 @@ public class Server
         }
         catch { }
 
-        Console.WriteLine($"[-] Отключился: {info}");
+        Console.WriteLine($"[-] Disconnected: {info}");
         connection.Close();
     }
 
@@ -121,7 +121,7 @@ public class Server
         }
     }
 
-    // Проверка неактивных клиентов
+    // Detect and remove dead or timed-out connections
     private void CheckForDeadConnections()
     {
         List<Connection> deadConnections;
@@ -142,7 +142,7 @@ public class Server
 
         foreach (Connection connection in deadConnections)
         {
-            string info = connection.Login ?? "гость";
+            string info = connection.Login ?? "guest";
             try
             {
                 if (connection.Client.Client.RemoteEndPoint != null)
@@ -152,7 +152,7 @@ public class Server
             }
             catch { }
 
-            Console.WriteLine($"[-] Закрыто неактивное соединение: {info}");
+            Console.WriteLine($"[-] Closed inactive connection: {info}");
             connection.Close();
         }
     }

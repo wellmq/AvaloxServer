@@ -1,4 +1,4 @@
-// Хранение хеша и соли из БД
+// Password hash and salt retrieved from database
 public class HashSalt
 {
     public string Hash { get; init; } = "";

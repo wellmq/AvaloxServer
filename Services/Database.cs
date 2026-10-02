@@ -2,7 +2,7 @@ using Microsoft.Data.Sqlite;
 using Dapper;
 using System.Threading.Tasks;
 
-// Инициализация базы данных SQLite и создание таблиц при старте
+// SQLite database initialization and schema creation on server startup
 public static class Database
 {
     private const string ConnectionString = "DataSource=Main.db";

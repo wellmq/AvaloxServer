@@ -4,7 +4,7 @@ using Dapper;
 using System;
 using System.Threading.Tasks;
 
-// Регистрация и авторизация пользователей
+// User registration, authentication, and PBKDF2 password hashing
 public class RegAuth
 {
     private const int SaltLength = 16;
@@ -12,7 +12,7 @@ public class RegAuth
     private const int Iterations = 50000;
     private readonly string connectionString = "DataSource=Main.db";
 
-    // Регистрация нового пользователя
+    // Register a new user with salted PBKDF2 hash
     public async Task<bool> Register(Credentials credentials)
     {
         using SqliteConnection connection = new SqliteConnection(connectionString);
@@ -45,7 +45,7 @@ public class RegAuth
         return true;
     }
 
-    // Проверка логина и пароля
+    // Authenticate credentials against stored salt and hash
     public async Task<bool> Auth(Credentials credentials)
     {
         using SqliteConnection connection = new SqliteConnection(connectionString);

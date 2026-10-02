@@ -1,6 +1,6 @@
 using System;
 
-// Модель сообщения для БД и передачи по сети
+// Message model for database persistence and network serialization
 public class Message
 {
     public long? Id { get; set; }

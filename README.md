@@ -2,138 +2,141 @@
 
 <div align="center">
 
-![C#](https://img.shields.io/badge/C%23-239120?style=for-the-badge&logo=csharp&logoColor=white)
-![.NET 10](https://img.shields.io/badge/.NET_10.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
-![Dapper](https://img.shields.io/badge/ORM-Dapper-orange?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+[![C#](https://img.shields.io/badge/C%23-239120?style=for-the-badge&logo=csharp&logoColor=white)](https://dotnet.microsoft.com/)
+[![.NET 10](https://img.shields.io/badge/.NET_10.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/download/dotnet/10.0)
+[![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+[![Dapper](https://img.shields.io/badge/ORM-Dapper-orange?style=for-the-badge)](https://github.com/DapperLib/Dapper)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
-**Асинхронный многопоточный TCP-сервер обмена сообщениями с хранением данных в SQLite и защитой паролей по стандарту PBKDF2.**
+**TCP messaging server for Avalox, written in C# (.NET 10) with SQLite storage.**
 
-[Возможности](#-основные-возможности) • [Стек технологий](#-стек-технологий) • [Архитектура](#-архитектура) • [Сетевой протокол](#-сетевой-протокол) • [Быстрый старт](#-быстрый-старт-и-запуск) • [Безопасность](#-безопасность-и-надежность) • [Лицензия](#-лицензия)
+🌐 **English** • [Русский](README.ru.md)
+
+[Features](#-features) • [Tech Stack](#-tech-stack) • [Architecture](#-architecture) • [Network Protocol](#-network-protocol) • [Quick Start](#-quick-start) • [Security](#-security--reliability) • [License](#-license)
 
 </div>
 
 ---
 
-## ✨ Основные возможности
+## ✨ Features
 
-- 🚀 **Асинхронная архитектура**: Полноценный неблокирующий `async/await` цикл на сокетах `TcpListener` / `TcpClient` для одновременного обслуживания множества клиентов.
-- 🔀 **Каналы отправки `System.Threading.Channels`**:
-  - Каждое клиентское подключение изолировано в отдельную очередь пакетов.
-  - Исключены race conditions и повреждение данных при параллельной отправке ответов.
-- ⚙️ **Гибкая настройка порта и авто-поиск свободного**:
-  - Запуск на любом порту через аргументы командной строки (`-p 8080`, `--port 9000` или позиционный аргумент).
-  - Встроенная проверка занятости: если запрошенный порт уже занят другим процессом, сервер автоматически находит и занимает следующий доступный порт.
-- 🔐 **Криптографическая защита паролей**:
-  - Хеширование паролей по стандарту PBKDF2 (`Rfc2898DeriveBytes`) с криптографической солью (Salt) и 100 000 итераций SHA-256.
-  - Пароли в чистом виде никогда не сохраняются и не логируются.
-- 💾 **Хранение данных в SQLite через Dapper**:
-  - Локальная база данных `Main.db`.
-  - Автоматическая инициализация схемы (таблицы `Users` и `Messages`) при первом старте.
-  - Быстрые типизированные запросы через Dapper Micro-ORM.
-- 🧹 **Очистка неактивных соединений**:
-  - Фоновый таймер проверяет активность клиентов каждые 3 секунды.
-  - Информативное логирование в консоль всех подключений, отключений и таймаутов с указанием логина и IP-адреса.
-
----
-
-## 🛠 Стек технологий
-
-- **Платформа**: [.NET 10.0](https://dotnet.microsoft.com/) (C# 13)
-- **Сетевое взаимодействие**: `System.Net.Sockets`, `System.Threading.Channels`
-- **База данных**: [SQLite](https://www.sqlite.org/) (`Microsoft.Data.Sqlite 10.0`)
-- **ORM**: [Dapper 2.1](https://github.com/DapperLib/Dapper)
-- **Криптография**: `System.Security.Cryptography` (PBKDF2 / SHA256)
-- **Сериализация**: `System.Text.Json`
+- 🚀 **Asynchronous Sockets**: Handles client connections asynchronously with `async/await` on `TcpListener`.
+- 🔀 **Response Queues**:
+  - Each client connection uses a `Channel<Response>` queue.
+  - Sends responses sequentially so packets don't overlap.
+- ⚙️ **Configurable Port with Auto-Fallback**:
+  - Launch on any port via CLI arguments (`-p 8080`, `--port 9000`, or positional argument).
+  - Port collision detection: if the requested port is occupied, the server automatically scans and binds to the next available port.
+- 🔐 **Password Hashing**:
+  - Passwords are saved as salted PBKDF2 (SHA-256) hashes.
+  - Plaintext passwords are never stored in the database.
+- 💾 **SQLite Storage via Dapper**:
+  - Local database `Main.db` with schema auto-initialization (`Users` and `Messages` tables) on first launch.
+  - Fast, type-safe queries powered by the Dapper Micro-ORM.
+- 🧹 **Dead Connection Watchdog**:
+  - Periodic background timer purges timed-out or abandoned sockets every 3 seconds.
+  - Detailed console logging for client connections, disconnections, and timeouts with IP addresses.
 
 ---
 
-## 🏛 Архитектура проекта
+## 🛠 Tech Stack
+
+- **Platform**: [.NET 10.0](https://dotnet.microsoft.com/) (C# 13)
+- **Networking**: `System.Net.Sockets`, `System.Threading.Channels`
+- **Database**: [SQLite](https://www.sqlite.org/) (`Microsoft.Data.Sqlite 10.0`)
+- **Micro-ORM**: [Dapper 2.1](https://github.com/DapperLib/Dapper)
+- **Cryptography**: `System.Security.Cryptography` (PBKDF2 / SHA256)
+- **Serialization**: `System.Text.Json`
+
+---
+
+## 🏛 Architecture
 
 ```
 AvaloxServer/
 ├── Models/
-│   ├── Connection.cs       # Сетевое соединение клиента и очередь Channel
-│   ├── Credentials.cs      # DTO логина и пароля
-│   ├── HashSalt.cs         # Модель хеша и соли пароля
-│   ├── LastMessageInfo.cs  # DTO запроса синхронизации
-│   ├── Message.cs          # Модель сообщения переписки
-│   ├── Response.cs         # Унифицированный ответ сервера
-│   └── TargetUser.cs       # DTO запроса онлайн-статуса
+│   ├── Connection.cs       # Client connection handler and packet write queue
+│   ├── Credentials.cs      # User credentials DTO
+│   ├── HashSalt.cs         # Database password hash and salt model
+│   ├── LastMessageInfo.cs  # Message synchronization request DTO
+│   ├── Message.cs          # Chat message DTO
+│   ├── Response.cs         # Unified server response DTO
+│   └── TargetUser.cs       # Target user online status query DTO
 ├── Services/
-│   ├── MessageStorage.cs   # Слой данных SQLite: сохранение и выборка сообщений
-│   ├── RegAuth.cs          # Слой авторизации, регистрации и PBKDF2-хеширования
-│   └── Server.cs           # TCP-листенер, пул клиентов и watchdog неактивности
-├── Program.cs              # Точка входа и CLI-парсинг аргументов
-└── AvaloxServer.csproj     # Конфигурация проекта и зависимости
+│   ├── Database.cs         # Automatic SQLite database and schema initialization
+│   ├── MessageStorage.cs   # Message persistence and retrieval via Dapper
+│   ├── RegAuth.cs          # Registration, authentication, and PBKDF2 hashing
+│   └── Server.cs           # TCP listener, active client pool, and watchdog
+├── Program.cs              # Entry point and CLI port argument parser
+└── AvaloxServer.csproj     # Project configuration and dependencies
 ```
 
 ---
 
-## 📡 Сетевой протокол
+## 📡 Network Protocol
 
-Сервер принимает и отправляет TCP-пакеты с явным бинарным фреймингом:
+The server communicates via TCP using explicit binary packet framing:
 
-$$\text{[ 1 байт: Type ]} + \text{[ 4 байта: Int32 Payload Length ]} + \text{[ N байт: JSON Payload ]}$$
+$$\text{[ 1 byte: Type ]} + \text{[ 4 bytes: Int32 Payload Length ]} + \text{[ N bytes: JSON Payload ]}$$
 
-### Таблица маршрутизации:
-| Код | Название | Входной объект | Логика обработки | Результат |
+### Routing Table:
+| Code | Request Type | Payload | Processing Logic | Result |
 |:---:|:---|:---|:---|:---|
-| `0` | **Регистрация** | `Credentials` | Создание уникального salt, хеширование, сохранение в БД | `Response(true/false)` |
-| `1` | **Авторизация** | `Credentials` | Проверка хеша пароля, привязка логина к соединению | `Response(true/false)` |
-| `2` | **Сообщение** | `Message` | Валидация сессии, запись сообщения в БД со штампом времени | `Response(true/false)` |
-| `3` | **Синхронизация**| `LastMessageInfo` | Выборка входящих и исходящих сообщений с `Id > lastId` | `Response(List<Message>)` |
-| `4` | **Онлайн-статус**| `TargetUser` | Проверка наличия активного подключения по логину | `Response("yes"/"no")` |
+| `0` | **Registration** | `Credentials` | Generate salt, hash password with PBKDF2, persist to DB | `Response(true/false)` |
+| `1` | **Authentication** | `Credentials` | Verify password hash, bind username to connection | `Response(true/false)` |
+| `2` | **Send Message** | `Message` | Validate session, persist message to SQLite with timestamp | `Response(true/false)` |
+| `3` | **Sync Messages** | `LastMessageInfo` | Fetch messages where `Id > lastId` for authenticated user | `Response(List<Message>)` |
+| `4` | **Online Status** | `TargetUser` | Check active connections pool for target username | `Response("yes"/"no")` |
 
 ---
 
-## 🚀 Быстрый старт и запуск
+## 🚀 Quick Start
 
-### Требования
+### Prerequisites
 - [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 
-### Сборка
+### Clone & Build
 ```bash
 git clone https://github.com/wellmq/AvaloxServer.git
 cd AvaloxServer
 dotnet build
 ```
 
-### Запуск сервера
-**1. С портом по умолчанию (`7777`):**
+### Starting the Server
+**1. Default port (`7777`):**
 ```bash
 dotnet run
 ```
 
-**2. С указанием порта через ключ `-p` или `--port`:**
+**2. Custom port via flags:**
 ```bash
 dotnet run -- -p 8888
-# или
+# or
 dotnet run -- --port 9000
 ```
 
-**3. С указанием порта позиционным аргументом:**
+**3. Custom port as positional argument:**
 ```bash
 dotnet run -- 5555
 ```
 
 ---
 
-## 🔒 Безопасность и надёжность
-
-- **Защита паролей**: Каждый пароль снабжается 16-байтным криптографическим `Salt` (`RandomNumberGenerator`). Ключ генерируется с помощью 100 000 раундов PBKDF2 (SHA-256).
-- **Ограничение пакетов**: Лимит в 5 МБ на входящий фрейм предотвращает DoS-атаки на исчерпание памяти.
-- **Изоляция каналов**: Запись клиенту происходит строго последовательно через `SingleReader` канал, исключая рассинхронизацию потоков TCP.
-
----
-
-## 🔗 Связанный проект
-
-- **Клиентское приложение**: [Avalox Client](https://github.com/wellmq/Avalox) — графический кроссплатформенный клиент на Avalonia UI.
+## 🔒 Security & Reliability
+ 
+- **Password Hashing**: Passwords are saved with a salt using PBKDF2 instead of plain text.
+- **Packet Size Limit**: 5 MB upper limit per packet to reject oversized payloads.
+- **Response Queues**: Responses are sent sequentially through channels so packets don't overlap.
+- **Auto Schema Init**: Database tables (`Users`, `Messages`) are created automatically on startup.
 
 ---
 
-## 📄 Лицензия
+## 🔗 Related Project
 
-Проект распространяется под лицензией [MIT](LICENSE).
+- **Client**: [Avalox Client](https://github.com/wellmq/Avalox) — Cross-platform desktop messenger GUI built on Avalonia UI.
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).

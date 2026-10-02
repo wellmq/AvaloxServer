@@ -4,12 +4,12 @@ using System;
 using System.Threading.Tasks;
 using System.Linq;
 
-// Сервис сохранения и выборки сообщений из SQLite через Dapper
+// Message persistence and retrieval service using SQLite and Dapper
 public class MessageStorage
 {
     private readonly string connectionString = "DataSource=Main.db";
 
-    // Сохранение сообщения в БД и возврат сгенерированного Id
+    // Insert message into database and return generated Id
     public async Task<long> Add(Message message)
     {
         using SqliteConnection connection = new SqliteConnection(connectionString);
@@ -29,7 +29,7 @@ public class MessageStorage
         return id;
     }
 
-    // Выборка сообщений диалогов пользователя с Id больше LastMessageId
+    // Query messages for a user with Id greater than LastMessageId
     public async Task<Message[]> RequestNew(LastMessageInfo lastMessageInfo, string login)
     {
         using SqliteConnection connection = new SqliteConnection(connectionString);
