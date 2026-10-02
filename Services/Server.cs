@@ -98,6 +98,18 @@ public class Server
         {
             connections.Remove(connection);
         }
+
+        string info = connection.Login ?? "гость";
+        try
+        {
+            if (connection.Client.Client.RemoteEndPoint != null)
+            {
+                info += $" ({connection.Client.Client.RemoteEndPoint})";
+            }
+        }
+        catch { }
+
+        Console.WriteLine($"[-] Отключился: {info}");
         connection.Close();
     }
 
@@ -130,12 +142,18 @@ public class Server
 
         foreach (Connection connection in deadConnections)
         {
+            string info = connection.Login ?? "гость";
             try
             {
-                Console.WriteLine($"[-] Закрыто неактивное соединение: {connection.Client.Client.RemoteEndPoint}");
-                connection.Close();
+                if (connection.Client.Client.RemoteEndPoint != null)
+                {
+                    info += $" ({connection.Client.Client.RemoteEndPoint})";
+                }
             }
             catch { }
+
+            Console.WriteLine($"[-] Закрыто неактивное соединение: {info}");
+            connection.Close();
         }
     }
 }
